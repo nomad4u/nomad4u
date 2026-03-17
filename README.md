@@ -40,8 +40,8 @@ graph TD
     end
 
     %% 데이터 저장소 연동
-    CSV[(KBO 24-25 성적.csv)] -.-> |"정량 지표 검색"| DataAgent
-    VDB[(Chroma Vector DB)] -.-> |"유사도 검색(RAG)"| ScouterAgent
+    CSV[(KBO 24-25 투수, 타자 성적.csv)] -.-> |"정량 지표 검색"| DataAgent
+    VDB[(FAISS Vector DB)] -.-> |"유사도 검색(RAG)"| ScouterAgent
     Text[("스카우팅/세이버 가이드.txt")] -.-> |"임베딩"| VDB
 
     %% 결과 출력
