@@ -23,14 +23,14 @@ graph TD
 
     %% LangGraph 핵심 워크플로우
     subgraph "LangGraph Multi-Agent Workflow"
-        Start((시작)) --> DataAgent[데이터 수집 에이전트\n(Pandas Tool)]
+        Start((시작)) --> DataAgent["데이터 수집 에이전트<br/>(Pandas Tool)"]
         
         %% 병렬 분석 처리
-        DataAgent --> SaberAgent[세이버메트릭스 에이전트\n(데이터 심층 분석)]
-        DataAgent --> ScouterAgent[스카우터 에이전트\n(RAG: 부상/멘탈 평가)]
-        DataAgent --> FinanceAgent[재무 담당 에이전트\n(예산 및 가성비 검토)]
+        DataAgent --> SaberAgent["세이버메트릭스 에이전트<br/>(데이터 심층 분석)"]
+        DataAgent --> ScouterAgent["스카우터 에이전트<br/>(RAG: 부상/멘탈 평가)"]
+        DataAgent --> FinanceAgent["재무 담당 에이전트<br/>(예산 및 가성비 검토)"]
         
-        SaberAgent --> GM_Review{단장(GM) 에이전트\n최종 종합 검토}
+        SaberAgent --> GM_Review{"단장(GM) 에이전트<br/>최종 종합 검토"}
         ScouterAgent --> GM_Review
         FinanceAgent --> GM_Review
         
@@ -42,7 +42,7 @@ graph TD
     %% 데이터 저장소 연동
     CSV[(KBO 24-25 성적.csv)] -.-> |"정량 지표 검색"| DataAgent
     VDB[(Chroma Vector DB)] -.-> |"유사도 검색(RAG)"| ScouterAgent
-    Text[(스카우팅/세이버 가이드.txt)] -.-> |"임베딩"| VDB
+    Text[("스카우팅/세이버 가이드.txt")] -.-> |"임베딩"| VDB
 
     %% 결과 출력
     Backend -.-> |"State Graph 실행"| Start
