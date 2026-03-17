@@ -15,6 +15,7 @@ Here are some ideas to get you started:
 - ⚡ Fun fact: ...
 -->
 
+```mermaid
 graph TD
     %% 외부 사용자 및 인터페이스
     User((사용자)) --> |"영입 조건 입력"| UI[Streamlit UI]
@@ -48,3 +49,4 @@ graph TD
     ReportGen --> End((종료))
     End -.-> |"리포트 JSON 반환"| Backend
     Backend --> |"결과 렌더링"| UI
+```
