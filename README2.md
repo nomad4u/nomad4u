@@ -7,7 +7,7 @@ sequenceDiagram
     participant Graph as LangGraph (상태 관리)
     participant Tool as Pandas (CSV 검색)
     participant RAG as Vector DB (텍스트 검색)
-    participant LLM as GPT/Gemini 모델
+    participant LLM as GPT 모델
 
     User->>UI: 조건 입력 (포지션: 포수, 예산: 2억)
     UI->>API: POST /api/v1/analyze
