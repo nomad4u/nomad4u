@@ -16,37 +16,47 @@ Here are some ideas to get you started:
 -->
 
 ```mermaid
-graph TD
-    %% 외부 사용자 및 인터페이스
-    User((사용자)) --> |"영입 조건 입력"| UI[Streamlit UI]
-    UI --> |"API 요청"| Backend[FastAPI Backend]
-
-    %% LangGraph 핵심 워크플로우
-    subgraph "LangGraph Multi-Agent Workflow"
-        Start((시작)) --> DataAgent["데이터 수집 에이전트<br/>(Pandas Tool)"]
-        
-        %% 병렬 분석 처리
-        DataAgent --> SaberAgent["세이버메트릭스 에이전트<br/>(데이터 심층 분석)"]
-        DataAgent --> ScouterAgent["스카우터 에이전트<br/>(RAG: 부상/멘탈 평가)"]
-        DataAgent --> FinanceAgent["재무 담당 에이전트<br/>(예산 및 가성비 검토)"]
-        
-        SaberAgent --> GM_Review{"단장(GM) 에이전트<br/>최종 종합 검토"}
-        ScouterAgent --> GM_Review
-        FinanceAgent --> GM_Review
-        
-        %% 피드백 루프 (Conditional Edge)
-        GM_Review -- "반려 (예산초과/부상위험 등)" --> DataAgent
-        GM_Review -- "최종 승인" --> ReportGen[최종 리포트 생성 노드]
+graph TB
+    subgraph Client_Layer [Frontend: Streamlit]
+        User([사용자]) --> UI[입력 폼 & 히스토리 뷰어]
+        UI --> SS[Session State: 검색 이력 저장]
     end
 
-    %% 데이터 저장소 연동
-    CSV[(KBO 24-25 투수, 타자 성적.csv)] -.-> |"정량 지표 검색"| DataAgent
-    VDB[(FAISS Vector DB)] -.-> |"유사도 검색(RAG)"| ScouterAgent
-    Text[("스카우팅/세이버 가이드.txt")] -.-> |"임베딩"| VDB
+    subgraph Backend_Layer [API: FastAPI]
+        UI --> API[POST /api/v1/gm-report]
+        API --> Validator{Pydantic <br/>입력 검증}
+    end
 
-    %% 결과 출력
-    Backend -.-> |"State Graph 실행"| Start
-    ReportGen --> End((종료))
-    End -.-> |"리포트 JSON 반환"| Backend
-    Backend --> |"결과 렌더링"| UI
+    subgraph LangGraph_Agent_Framework [Multi-Agent Orchestration]
+        Validator --> Supervisor[<b>GM Supervisor (단장)</b><br/>상태 분석 및 라우팅 판단]
+        
+        %% Checkpointer
+        Supervisor -.-> Memory[(MemorySaver<br/>Checkpointer)]
+
+        %% Nodes
+        Supervisor -->|1. 명단 필요| DataNode[<b>Data Agent</b><br/>ReAct: CSV 능동 검색]
+        Supervisor -->|2. 지표 분석| SaberNode[<b>Saber Agent</b><br/>Pydantic: 세이버 분석]
+        Supervisor -->|3. 정성 평가| ScoutNode[<b>Scout Agent</b><br/>ReAct: RAG 능동 검색]
+        Supervisor -->|4. 예산 검토| FinanceNode[<b>Finance Agent</b><br/>Pydantic: 가성비 평가]
+
+        %% Returns to Supervisor
+        DataNode --> Supervisor
+        SaberNode --> Supervisor
+        ScoutNode --> Supervisor
+        FinanceNode --> Supervisor
+
+        %% Decision Logic
+        Supervisor -->|REJECT: 조건 미달| DataNode
+        Supervisor -->|APPROVE: 최종 승인| Finish([FINISH: 최종 리포트 생성])
+    end
+
+    subgraph Data_Layer [Knowledge Base]
+        DataNode --- CSV[(KBO 정형 데이터<br/>CSV Files)]
+        ScoutNode --- FAISS[(FAISS Vector DB<br/>Scouting Reports)]
+    end
+
+    %% Styling
+    style Supervisor fill:#f96,stroke:#333,stroke-width:2px
+    style Finish fill:#00c853,stroke:#333,color:#fff
+    style Memory fill:#e1f5fe,stroke:#01579b
 ```
