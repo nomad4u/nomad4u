@@ -2,43 +2,48 @@
 sequenceDiagram
     autonumber
     actor User as 사용자
-    participant UI as Streamlit (프론트)
-    participant API as FastAPI (백엔드)
-    participant Graph as LangGraph (상태 관리)
-    participant Tool as Pandas (CSV 검색)
-    participant RAG as Vector DB (텍스트 검색)
-    participant LLM as GPT 모델
+    participant UI as Streamlit (Frontend)
+    participant API as FastAPI (Backend)
+    participant GM as GM Supervisor
+    participant Data as Data Agent
+    participant Saber as Saber Agent
+    participant Scout as Scout Agent
+    participant Finance as Finance Agent
+    participant DB as CSV & Vector DB (FAISS)
 
-    User->>UI: 조건 입력 (포지션: 포수, 예산: 2억)
-    UI->>API: POST /api/v1/analyze
-    API->>Graph: AgentState 초기화 및 Graph 실행
-    
-    %% 데이터 수집 단계
-    Graph->>Tool: [Data Agent] 조건에 맞는 1차 선수 목록 조회
-    Tool-->>Graph: 후보 선수 3명 기초 스탯 반환
-    
-    %% 병렬 분석 단계 (RAG 및 스탯 분석)
-    par 정량적 분석 (Saber & Finance)
-        Graph->>LLM: [Saber/Finance] sWAR 및 가성비 분석 요청
-        LLM-->>Graph: 세이버/재무 분석 결과 반환
-    and 정성적 분석 (Scouter)
-        Graph->>RAG: [Scouter Agent] 후보 선수 리스크/멘탈 정보 유사도 검색
-        RAG-->>Graph: 스카우팅 리포트 청크 반환
-        Graph->>LLM: 검색된 텍스트 기반 정성 평가 요청
-        LLM-->>Graph: 리스크 평가 리포트 반환
+    User->>UI: 영입 조건 입력 (포지션, 예산, 요구사항)
+    UI->>API: 분석 요청 (POST /api/v1/gm-report)
+    API->>GM: 상태 전달 및 LangGraph 워크플로우 시작
+
+    rect rgb(240, 248, 255)
+        Note right of GM: [Agent Processing & 데이터 검색 루프]
+        
+        GM->>Data: 선수 후보군 검색 지시
+        Data->>DB: CSV 도구 실행 (정형 데이터 필터링)
+        DB-->>Data: 조건에 맞는 선수 명단 반환
+        Data-->>GM: 추출된 명단 전달
+
+        GM->>Saber: 세이버메트릭스 지표 분석 지시
+        Saber-->>GM: 스탯 분석 결과 반환 (Pydantic JSON)
+
+        GM->>Scout: 스카우팅 리포트 분석 지시
+        Scout->>DB: RAG 도구 실행 (Vector DB 유사도 검색)
+        DB-->>Scout: 멘탈/부상 관련 문서 청크 반환
+        Scout-->>GM: 정성 평가 결과 반환 (Pydantic JSON)
+
+        GM->>Finance: 예산 및 가성비 검토 지시
+        Finance-->>GM: 재무 등급 반환 (Pydantic JSON)
     end
-    
-    %% GM 의사결정
-    Graph->>LLM: [GM Agent] 모든 리포트 취합 후 승인 여부 판단
-    
-    alt 거절 시 (Feedback Loop)
-        LLM-->>Graph: 상태 = REJECT (이유: 부상 위험도 높음)
-        Graph->>Tool: [Data Agent] 새로운 조건으로 다시 검색 시작...
-    else 승인 시
-        LLM-->>Graph: 상태 = APPROVED, 최종 리포트 작성
+
+    GM->>GM: 종합 평가 및 최종 의사 결정 (APPROVE/REJECT)
+
+    alt 반려 (REJECT)
+        GM-->>Data: 반려 사유 피드백 및 새로운 선수 재검색 지시 (Loop)
+    else 승인 (APPROVE)
+        GM-->>API: 최종 영입 리포트 생성 및 반환
     end
-    
-    Graph-->>API: 최종 AgentState 결과 반환
-    API-->>UI: 리포트 데이터 및 에이전트 대화 로그 전송
-    UI->>User: 대시보드 화면 출력 (시각화)
+
+    API-->>UI: 응답 데이터 전달 (최종 리포트, 반복 횟수)
+    UI->>UI: Session State에 검색 히스토리 저장
+    UI-->>User: 진행 상태(Status) 완료 처리 및 마크다운 리포트 출력
 ```
